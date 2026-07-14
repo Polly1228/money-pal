@@ -191,15 +191,16 @@ const HINT = {
   '醫療': ['看醫生','掛號','藥','診所','牙醫','眼科','眼鏡','保健','維他命','口罩'],
 };
 
+const P = 'assets/pals/';
 const PALS = [
-  {e:'🐶',n:'小狗'},{e:'🐱',n:'小貓'},{e:'🐔',n:'小雞',img:'assets/pals/chick'},{e:'🐰',n:'小兔'},{e:'🐹',n:'倉鼠'},
-  {e:'🐢',n:'烏龜'},{e:'🐟',n:'金魚'},{e:'🐧',n:'企鵝'},{e:'🦉',n:'貓頭鷹'},{e:'🐸',n:'青蛙'},
-  {e:'🦔',n:'刺蝟'},{e:'🦊',n:'狐狸'},{e:'🐼',n:'熊貓'},{e:'🐨',n:'無尾熊'},{e:'🐷',n:'小豬'},
-  {e:'🐑',n:'綿羊'},{e:'🦆',n:'鴨鴨'},{e:'🐝',n:'蜜蜂'},{e:'🐌',n:'蝸牛'},{e:'🐙',n:'章魚'},
-  {e:'🦖',n:'恐龍'},{e:'🐲',n:'小龍'},{e:'🦄',n:'獨角獸'},{e:'👻',n:'小幽靈'},{e:'🌱',n:'小樹苗'},
-  {e:'🌵',n:'仙人掌'},{e:'🌻',n:'向日葵'},{e:'🌷',n:'鬱金香'},{e:'🌹',n:'玫瑰'},{e:'🌸',n:'櫻花'},
-  {e:'🍀',n:'幸運草'},{e:'🍄',n:'蘑菇'},{e:'🎍',n:'竹子'},{e:'🪴',n:'多肉'},{e:'⭐',n:'星星'},
-  {e:'🌙',n:'月亮'},{e:'☁️',n:'雲朵'},{e:'⛄',n:'雪人'},{e:'🍙',n:'飯糰'},{e:'🧋',n:'珍奶'},
+  {e:'🐶',n:'小狗',img:P+'dog'},{e:'🐱',n:'小貓',img:P+'cat'},{e:'🐔',n:'小雞',img:P+'chick'},{e:'🐰',n:'小兔',img:P+'rabbit'},{e:'🐹',n:'倉鼠',img:P+'hamster'},
+  {e:'🐢',n:'烏龜',img:P+'turtle'},{e:'🐟',n:'金魚',img:P+'goldfish'},{e:'🐧',n:'企鵝',img:P+'penguin'},{e:'🦉',n:'貓頭鷹',img:P+'owl'},{e:'🐸',n:'青蛙',img:P+'frog'},
+  {e:'🦔',n:'刺蝟',img:P+'hedgehog'},{e:'🦊',n:'狐狸',img:P+'fox'},{e:'🐼',n:'熊貓',img:P+'panda'},{e:'🐨',n:'無尾熊',img:P+'koala'},{e:'🐷',n:'小豬',img:P+'pig'},
+  {e:'🐑',n:'綿羊',img:P+'sheep'},{e:'🦆',n:'鴨鴨',img:P+'duck'},{e:'🐝',n:'蜜蜂',img:P+'bee'},{e:'🐌',n:'蝸牛',img:P+'snail'},{e:'🐙',n:'章魚',img:P+'octopus'},
+  {e:'🦖',n:'恐龍',img:P+'dino'},{e:'🐲',n:'小龍',img:P+'dragon'},{e:'🦄',n:'獨角獸',img:P+'unicorn'},{e:'👻',n:'小幽靈',img:P+'ghost'},{e:'🌱',n:'小樹苗',img:P+'sprout'},
+  {e:'🌵',n:'仙人掌',img:P+'cactus'},{e:'🌻',n:'向日葵',img:P+'sunflower'},{e:'🌷',n:'鬱金香',img:P+'tulip'},{e:'🌹',n:'玫瑰',img:P+'rose'},{e:'🌸',n:'櫻花',img:P+'sakura'},
+  {e:'🍀',n:'幸運草',img:P+'clover'},{e:'🍄',n:'蘑菇',img:P+'mushroom'},{e:'🎍',n:'竹子',img:P+'bamboo'},{e:'🪴',n:'多肉',img:P+'succulent'},{e:'⭐',n:'星星',img:P+'star'},
+  {e:'🌙',n:'月亮',img:P+'moon'},{e:'☁️',n:'雲朵',img:P+'cloud'},{e:'⛄',n:'雪人',img:P+'snowman'},{e:'🍙',n:'飯糰',img:P+'riceball'},{e:'🧋',n:'珍奶',img:P+'boba'},
 ];
 
 const CHEERS = [
@@ -511,9 +512,10 @@ function renderPals() {
   const g = document.getElementById('palGrid');
   g.innerHTML = '';
   PALS.forEach(p => {
+    const face = p.img ? `<img src="${p.img}/7.svg" class="w-7 h-7" alt="${p.n}">` : p.e;
     g.insertAdjacentHTML('beforeend',
-      `<button class="btn btn-ghost btn-sm text-xl ${p.e === cur.e ? 'btn-active ring-2 ring-primary' : ''}"
-               onclick="pickPal('${p.e}')" title="${p.n}">${p.e}</button>`);
+      `<button class="btn btn-ghost btn-sm text-xl px-0 ${p.e === cur.e ? 'btn-active ring-2 ring-primary' : ''}"
+               onclick="pickPal('${p.e}')" title="${p.n}">${face}</button>`);
   });
   document.getElementById('palNameInput').value = cur.name;
   document.getElementById('palNameInput').placeholder = `不取的話就叫「${defName()}」`;
