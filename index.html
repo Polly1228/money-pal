@@ -45,9 +45,33 @@
   .bar { transition: width 0.6s ease; }
   .view { display: none; }
   .view.active { display: flex; }
+
+  /* Loading 開場：金幣雨（照 Claude Design 的動畫規格） */
+  @keyframes coinfall {
+    from { transform: translateY(-140px) rotate(-30deg); }
+    to   { transform: translateY(110vh) rotate(330deg); }
+  }
+  @keyframes spindots {
+    from { transform: rotate(0deg); } to { transform: rotate(360deg); }
+  }
+  #splash { background: linear-gradient(#FFF9EF, #FFEBCF); transition: opacity 0.45s ease; }
 </style>
 </head>
 <body class="bg-base-200">
+
+<!-- Loading 開場動畫 -->
+<div id="splash" class="fixed inset-0 z-50 flex flex-col items-center justify-center">
+  <div id="splashCoins" class="absolute inset-0 overflow-hidden pointer-events-none"></div>
+  <img src="icon-512.png" class="w-24 h-24 rounded-3xl shadow-lg" style="box-shadow:0 10px 24px rgba(217,154,51,0.35);" alt="">
+  <div class="mt-6" style="font-size:26px; font-weight:900; color:#4A332A; letter-spacing:3px;">趕快來記帳!</div>
+  <div class="mt-8 relative" style="width:44px; height:44px; animation:spindots 1.4s linear infinite;">
+    <div style="position:absolute; left:17px; top:0; width:9px; height:9px; border-radius:50%; background:#E0B461;"></div>
+    <div style="position:absolute; right:0; top:17px; width:9px; height:9px; border-radius:50%; background:#E0B461; opacity:0.75;"></div>
+    <div style="position:absolute; left:17px; bottom:0; width:9px; height:9px; border-radius:50%; background:#E0B461; opacity:0.5;"></div>
+    <div style="position:absolute; left:0; top:17px; width:9px; height:9px; border-radius:50%; background:#E0B461; opacity:0.25;"></div>
+  </div>
+</div>
+
 <div class="mx-auto max-w-md h-full flex flex-col bg-base-100 shadow-xl">
 
   <!-- ══════════ 頂欄 ══════════ -->
@@ -103,13 +127,16 @@
   </main>
 
   <!-- ══════════ 夥伴之家（圖鑑） ══════════ -->
-  <main id="view-home" class="view flex-col flex-1 overflow-y-auto p-4 gap-4">
-    <div class="flex items-center justify-between">
+  <main id="view-home" class="view flex-col flex-1 overflow-y-auto p-4 gap-4"
+        style="background:url('assets/home-bg.svg') center top / cover no-repeat, linear-gradient(#FFF3E2,#F5DEB9);">
+    <div class="flex items-center justify-between rounded-full px-3 py-1"
+         style="background:rgba(255,255,255,0.75); backdrop-filter:blur(4px);">
       <h2 class="text-lg font-bold">🏡 夥伴之家</h2>
       <button class="btn btn-ghost btn-sm" onclick="showView('chat')">✕</button>
     </div>
-    <p class="text-xs opacity-60">記帳滿 7 天就能養好一位夥伴，牠會搬進來住 🎉</p>
-    <div id="homeGrid" class="grid grid-cols-3 gap-3"></div>
+    <p class="text-xs self-start rounded-full px-3 py-1"
+       style="background:rgba(255,255,255,0.7); backdrop-filter:blur(4px);">記帳滿 7 天就能養好一位夥伴，牠會搬進來住 🎉</p>
+    <div id="homeGrid" class="grid grid-cols-3 gap-3 mt-auto pb-6"></div>
   </main>
 
   <!-- ══════════ 錢去哪 ══════════ -->
@@ -493,13 +520,15 @@ function renderHome() {
   const g = document.getElementById('homeGrid');
   g.innerHTML = '';
   if (!collection.length) {
-    g.innerHTML = `<p class="col-span-3 text-sm opacity-50 text-center py-8">還沒有養好的夥伴<br>記帳滿 7 天，第一位就會搬進來！</p>`;
+    g.innerHTML = `<p class="col-span-3 text-sm text-center py-6 rounded-2xl"
+      style="background:rgba(255,255,255,0.75); backdrop-filter:blur(4px);">還沒有養好的夥伴<br>記帳滿 7 天，第一位就會搬進來！</p>`;
     return;
   }
   collection.forEach(p => {
     const face = p.img ? `<img src="${p.img}/7.svg" class="w-12 h-12" alt="">` : p.e;
     g.insertAdjacentHTML('beforeend', `
-      <div class="card bg-base-200 items-center p-3 gap-1">
+      <div class="card items-center p-3 gap-1 shadow-sm"
+           style="background:rgba(255,255,255,0.78); backdrop-filter:blur(4px);">
         <div class="text-4xl pal-idle">${face}</div>
         <div class="font-bold text-sm">${p.name}</div>
         <div class="text-xs opacity-50">${new Date(p.at).toLocaleDateString('zh-Hant',{month:'numeric',day:'numeric'})} 養好</div>
@@ -596,6 +625,36 @@ renderHeader();
 renderChat();
 if ('serviceWorker' in navigator && location.protocol === 'https:')
   navigator.serviceWorker.register('sw.js');
+
+/* Loading 開場：撒金幣＋鈔票，1.6 秒後淡出 */
+(function () {
+  const wrap = document.getElementById('splashCoins');
+  const coin = `<svg viewBox="0 0 100 100" style="width:100%;height:100%;display:block">
+    <circle cx="50" cy="50" r="46" fill="#FFC531"/>
+    <circle cx="50" cy="50" r="46" fill="none" stroke="#E8A93C" stroke-width="7"/>
+    <circle cx="50" cy="50" r="31" fill="none" stroke="#F2C766" stroke-width="4.5"/>
+    <text x="50" y="66" font-size="44" font-weight="800" text-anchor="middle" fill="#B8860B">$</text></svg>`;
+  const bill = `<svg viewBox="0 0 128 76" style="width:100%;height:100%;display:block">
+    <rect width="128" height="76" rx="12" fill="#A5D98F"/>
+    <rect x="10" y="10" width="108" height="56" rx="8" fill="none" stroke="#7FB868" stroke-width="4"/>
+    <circle cx="64" cy="38" r="16" fill="#C9E8BB"/>
+    <text x="64" y="46" font-size="24" font-weight="800" text-anchor="middle" fill="#5FA854">$</text></svg>`;
+  const drop = (html, w, h) => {
+    const d = document.createElement('div');
+    d.style.cssText = `position:absolute; top:-80px; left:${Math.random()*92}%; width:${w}px; height:${h}px;
+      animation:coinfall ${(1.6+Math.random()).toFixed(2)}s linear ${(Math.random()*2).toFixed(2)}s infinite;
+      opacity:${(0.75+Math.random()*0.25).toFixed(2)};`;
+    d.innerHTML = html;
+    wrap.appendChild(d);
+  };
+  for (let i = 0; i < 18; i++) { const s = 22 + Math.random() * 34; drop(coin, s, s); }
+  for (let i = 0; i < 3; i++)  { const w = 54 + Math.random() * 26; drop(bill, w, w * 0.59); }
+  setTimeout(() => {
+    const sp = document.getElementById('splash');
+    sp.style.opacity = '0';
+    setTimeout(() => sp.remove(), 500);
+  }, 1600);
+})();
 </script>
 </body>
 </html>
