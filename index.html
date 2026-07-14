@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="cupcake">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>記帳小夥伴</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#faf7f5">
+<link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  html, body { height: 100%; overscroll-behavior: none; }
+  body { -webkit-tap-highlight-color: transparent;
+         font-family: 'Noto Sans TC', sans-serif; font-weight: 500; }
+
+  /* 夥伴待機：輕輕漂浮呼吸 */
+  @keyframes floaty {
+    0%,100% { transform: translateY(0) scale(1); }
+    50%     { transform: translateY(-3px) scale(1.03); }
+  }
+  .pal-idle { animation: floaty 2.8s ease-in-out infinite; }
+
+  /* 記完一筆：開心彈跳 */
+  @keyframes happyjump {
+    0%   { transform: translateY(0) scale(1); }
+    30%  { transform: translateY(-14px) scale(1.15) rotate(-8deg); }
+    55%  { transform: translateY(0) scale(0.95); }
+    75%  { transform: translateY(-6px) scale(1.08) rotate(6deg); }
+    100% { transform: translateY(0) scale(1); }
+  }
+  .pal-happy { animation: happyjump 0.9s ease-in-out; }
+
+  /* 新泡泡淡入 */
+  @keyframes popin {
+    from { opacity: 0; transform: translateY(8px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .msg-in { animation: popin 0.25s ease-out; }
+
+  .bar { transition: width 0.6s ease; }
+  .view { display: none; }
+  .view.active { display: flex; }
+</style>
+</head>
+<body class="bg-base-200">
+<div class="mx-auto max-w-md h-full flex flex-col bg-base-100 shadow-xl">
+
+  <!-- ══════════ 頂欄 ══════════ -->
+  <header class="navbar min-h-14 bg-base-100 border-b border-base-200 px-3">
+    <div class="flex-1 flex items-center gap-2">
+      <div id="palAvatar" class="text-3xl pal-idle select-none cursor-pointer" onclick="showView('settings')">🐔</div>
+      <div class="leading-tight">
+        <div id="palName" class="font-bold text-sm">小夥伴</div>
+        <div id="streakLabel" class="text-xs opacity-60">開始記帳吧</div>
+      </div>
+    </div>
+    <div class="flex-none gap-1">
+      <button class="btn btn-ghost btn-sm text-lg" onclick="showView('home')" title="夥伴之家">🏡</button>
+      <button class="btn btn-ghost btn-sm text-lg" onclick="showView('stats')" title="錢去哪">📊</button>
+      <button class="btn btn-ghost btn-sm text-lg" onclick="showView('settings')" title="設定">⚙️</button>
+    </div>
+  </header>
+
+  <!-- ══════════ 聊天頁 ══════════ -->
+  <main id="view-chat" class="view active flex-col flex-1 overflow-hidden">
+    <div id="chatLog" class="flex-1 overflow-y-auto px-3 py-3"></div>
+
+    <div class="border-t border-base-200 bg-base-100 p-2 pb-3">
+      <div class="flex gap-2 mb-2">
+        <input id="textInput" type="text" placeholder="直接打：午餐 120"
+               class="input input-bordered input-sm flex-1 rounded-full"
+               onkeydown="if(event.key==='Enter')sendText()">
+        <button class="btn btn-primary btn-sm rounded-full px-4" onclick="sendText()">送出</button>
+      </div>
+      <div class="flex items-center justify-between px-2 mb-2">
+        <div class="text-2xl font-bold tabular-nums">$<span id="amountDisplay">0</span></div>
+        <input id="noteInput" type="text" placeholder="備註（可略過）"
+               class="input input-ghost input-xs w-36 text-right">
+      </div>
+      <div class="grid grid-cols-5 gap-1.5">
+        <div class="col-span-3 grid grid-cols-3 gap-1.5">
+          <button class="btn btn-sm" onclick="key('1')">1</button>
+          <button class="btn btn-sm" onclick="key('2')">2</button>
+          <button class="btn btn-sm" onclick="key('3')">3</button>
+          <button class="btn btn-sm" onclick="key('4')">4</button>
+          <button class="btn btn-sm" onclick="key('5')">5</button>
+          <button class="btn btn-sm" onclick="key('6')">6</button>
+          <button class="btn btn-sm" onclick="key('7')">7</button>
+          <button class="btn btn-sm" onclick="key('8')">8</button>
+          <button class="btn btn-sm" onclick="key('9')">9</button>
+          <button class="btn btn-sm" onclick="key('00')">00</button>
+          <button class="btn btn-sm" onclick="key('0')">0</button>
+          <button class="btn btn-sm" onclick="key('⌫')">⌫</button>
+        </div>
+        <div id="catButtons" class="col-span-2 grid grid-cols-2 gap-1.5"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ══════════ 夥伴之家（圖鑑） ══════════ -->
+  <main id="view-home" class="view flex-col flex-1 overflow-y-auto p-4 gap-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-bold">🏡 夥伴之家</h2>
+      <button class="btn btn-ghost btn-sm" onclick="showView('chat')">✕</button>
+    </div>
+    <p class="text-xs opacity-60">記帳滿 7 天就能養好一位夥伴，牠會搬進來住 🎉</p>
+    <div id="homeGrid" class="grid grid-cols-3 gap-3"></div>
+  </main>
+
+  <!-- ══════════ 錢去哪 ══════════ -->
+  <main id="view-stats" class="view flex-col flex-1 overflow-y-auto p-4 gap-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-bold">錢去哪</h2>
+      <button class="btn btn-ghost btn-sm" onclick="showView('chat')">✕</button>
+    </div>
+    <div class="join self-center">
+      <button class="btn btn-sm join-item" data-period="day"   onclick="setPeriod('day')">日</button>
+      <button class="btn btn-sm join-item" data-period="week"  onclick="setPeriod('week')">週</button>
+      <button class="btn btn-sm join-item" data-period="month" onclick="setPeriod('month')">月</button>
+    </div>
+    <div class="text-center">
+      <div id="statsRange" class="text-xs opacity-60"></div>
+      <div class="text-4xl font-extrabold tabular-nums mt-1">$<span id="statsTotal">0</span></div>
+    </div>
+    <div id="statsBars" class="flex flex-col gap-2"></div>
+    <div>
+      <h3 class="font-bold text-sm mb-2 opacity-70">最近紀錄</h3>
+      <ul id="recentList" class="flex flex-col gap-1"></ul>
+    </div>
+  </main>
+
+  <!-- ══════════ 設定 ══════════ -->
+  <main id="view-settings" class="view flex-col flex-1 overflow-y-auto p-4 gap-5">
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-bold">設定</h2>
+      <button class="btn btn-ghost btn-sm" onclick="showView('chat')">✕</button>
+    </div>
+
+    <section>
+      <h3 class="font-bold text-sm mb-2">幫夥伴取名字</h3>
+      <input id="palNameInput" type="text" maxlength="8" placeholder="不取的話就叫預設名"
+             class="input input-bordered input-sm w-48" onchange="renamePal()">
+    </section>
+
+    <section>
+      <h3 class="font-bold text-sm mb-2">選擇記帳小夥伴</h3>
+      <p class="text-xs opacity-60 mb-2">換夥伴會從第 1 天開始養，記帳資料不受影響。</p>
+      <div id="palGrid" class="grid grid-cols-8 gap-1"></div>
+    </section>
+
+    <section>
+      <h3 class="font-bold text-sm mb-2">每日記帳提醒</h3>
+      <div class="flex items-center gap-3">
+        <input id="remindToggle" type="checkbox" class="toggle toggle-primary" onchange="saveRemind()">
+        <input id="remindTime" type="time" value="21:00" class="input input-bordered input-sm" onchange="saveRemind()">
+      </div>
+      <p class="text-xs opacity-60 mt-1">App 開著的時候到點會跳通知。</p>
+    </section>
+
+    <section>
+      <h3 class="font-bold text-sm mb-2">匯出 / 匯入</h3>
+      <div class="flex flex-wrap gap-2">
+        <button class="btn btn-sm btn-outline" onclick="exportJSON()">匯出 JSON（備份/傳給家人）</button>
+        <button class="btn btn-sm btn-outline" onclick="exportCSV()">匯出 CSV（Excel 開）</button>
+        <label class="btn btn-sm btn-outline">
+          匯入 JSON 合併<input type="file" accept=".json" class="hidden" onchange="importJSON(this)">
+        </label>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+/* ═══════════════ 資料 ═══════════════ */
+const CATS = [
+  { id: '吃',   emoji: '🍜' }, { id: '交通', emoji: '🚌' },
+  { id: '居家', emoji: '🏠' }, { id: '娛樂', emoji: '🎮' },
+  { id: '醫療', emoji: '💊' }, { id: '其他', emoji: '📦' },
+];
+
+const HINT = {
+  '吃':   ['早餐','午餐','晚餐','宵夜','飲料','珍奶','手搖','咖啡','便當','麵','飯','火鍋','雞排','鹹酥雞','麥當勞','肯德基','超商','全家','零食','水果','點心','下午茶','壽司','滷味'],
+  '交通': ['公車','捷運','火車','高鐵','客運','計程車','uber','油錢','加油','停車','悠遊卡','一卡通','機車','腳踏車'],
+  '居家': ['房租','水費','電費','瓦斯','網路','電話費','日用品','衛生紙','洗衣','傢俱','燈泡','清潔'],
+  '娛樂': ['電影','遊戲','課金','唱歌','ktv','旅遊','衣服','鞋','包包','書','演唱會','訂閱','netflix','spotify','玩具','娃娃'],
+  '醫療': ['看醫生','掛號','藥','診所','牙醫','眼科','眼鏡','保健','維他命','口罩'],
+};
+
+const PALS = [
+  {e:'🐶',n:'小狗'},{e:'🐱',n:'小貓'},{e:'🐔',n:'小雞',img:'assets/pals/chick'},{e:'🐰',n:'小兔'},{e:'🐹',n:'倉鼠'},
+  {e:'🐢',n:'烏龜'},{e:'🐟',n:'金魚'},{e:'🐧',n:'企鵝'},{e:'🦉',n:'貓頭鷹'},{e:'🐸',n:'青蛙'},
+  {e:'🦔',n:'刺蝟'},{e:'🦊',n:'狐狸'},{e:'🐼',n:'熊貓'},{e:'🐨',n:'無尾熊'},{e:'🐷',n:'小豬'},
+  {e:'🐑',n:'綿羊'},{e:'🦆',n:'鴨鴨'},{e:'🐝',n:'蜜蜂'},{e:'🐌',n:'蝸牛'},{e:'🐙',n:'章魚'},
+  {e:'🦖',n:'恐龍'},{e:'🐲',n:'小龍'},{e:'🦄',n:'獨角獸'},{e:'👻',n:'小幽靈'},{e:'🌱',n:'小樹苗'},
+  {e:'🌵',n:'仙人掌'},{e:'🌻',n:'向日葵'},{e:'🌷',n:'鬱金香'},{e:'🌹',n:'玫瑰'},{e:'🌸',n:'櫻花'},
+  {e:'🍀',n:'幸運草'},{e:'🍄',n:'蘑菇'},{e:'🎍',n:'竹子'},{e:'🪴',n:'多肉'},{e:'⭐',n:'星星'},
+  {e:'🌙',n:'月亮'},{e:'☁️',n:'雲朵'},{e:'⛄',n:'雪人'},{e:'🍙',n:'飯糰'},{e:'🧋',n:'珍奶'},
+];
+
+const CHEERS = [
+  '記好了！你很棒 👍', '收到收到～', '又記一筆，讚啦 ✨', '好耶！我都有記下來',
+  '嗯嗯，這筆我幫你收好了', '穩穩的，繼續保持！', '哇，今天也有好好記帳呢',
+];
+
+/* 一天一階，七階養成 */
+const STAGE_NAME = ['第1天','第2天','第3天','第4天','第5天','第6天','完全體'];
+
+/* ═══════════════ 儲存 ═══════════════ */
+const store = {
+  get(k, d) { try { return JSON.parse(localStorage.getItem('jz_' + k)) ?? d; } catch { return d; } },
+  set(k, v) { localStorage.setItem('jz_' + k, JSON.stringify(v)); },
+};
+let records    = store.get('records', []);      // {id, ts, amount, cat, note}
+let learned    = store.get('learned', {});      // 關鍵字 → 分類（自動學習）
+let cur        = store.get('cur', { e: '🐔', name: '', adoptedAt: Date.now() });
+let collection = store.get('collection', []);   // 養好的夥伴 {e, name, at}
+let remind     = store.get('remind', { on: false, time: '21:00' });
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const fmt = n => n.toLocaleString('zh-Hant');
+const dayKey = ts => { const d = new Date(ts); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; };
+const palDef = () => PALS.find(p => p.e === cur.e) || { n: '小夥伴' };
+const defName = () => palDef().n;
+const palLabel = () => cur.name || defName();
+/* 目前這隻的圖：有圖檔用圖檔（1~7.svg），沒有就 null（用 emoji） */
+function palImgSrc(day) {
+  const d = palDef();
+  return d.img ? `${d.img}/${Math.min(Math.max(day, 1), 7)}.svg` : null;
+}
+function palFace(day, cls) {
+  const src = palImgSrc(day);
+  return src ? `<img src="${src}" class="${cls}" alt="">` : cur.e;
+}
+
+/* ═══════════════ 養成進度與連續天數 ═══════════════ */
+function streak() {
+  const days = new Set(records.map(r => dayKey(r.ts)));
+  let n = 0, d = new Date();
+  if (!days.has(dayKey(d.getTime()))) d.setDate(d.getDate() - 1);
+  while (days.has(dayKey(d.getTime()))) { n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
+/* 這隻夥伴養了幾天＝領養後有記帳的天數（累積制，斷了不歸零） */
+function palDays() {
+  return new Set(records.filter(r => r.ts >= cur.adoptedAt).map(r => dayKey(r.ts))).size;
+}
+function renderHeader() {
+  const d = Math.min(palDays(), 7), s = streak();
+  const av = document.getElementById('palAvatar');
+  const src = palImgSrc(d);
+  if (src) {
+    av.innerHTML = `<img src="${src}" class="w-10 h-10" alt="${palLabel()}">`;
+    av.style.fontSize = '';
+  } else {
+    av.textContent = cur.e;
+    av.style.fontSize = (1.5 + Math.min(d, 6) * 0.1) + 'rem';  // 沒圖的先用 emoji 長大替代
+  }
+  document.getElementById('palName').textContent = `${palLabel()}（${STAGE_NAME[Math.max(d - 1, 0)]}）`;
+  document.getElementById('streakLabel').textContent =
+    `養成 ${d}/7 天` + (s > 0 ? `・連續記帳 ${s} 天 🔥` : '');
+}
+
+/* ═══════════════ 聊天 ═══════════════ */
+const chatLog = document.getElementById('chatLog');
+
+function bubblePal(text) {
+  const el = document.createElement('div');
+  el.className = 'chat chat-start msg-in';
+  el.innerHTML = `<div class="chat-image text-2xl select-none">${palFace(Math.min(palDays(),7), 'w-8 h-8')}</div>
+                  <div class="chat-bubble chat-bubble-neutral text-sm">${text}</div>`;
+  chatLog.appendChild(el);
+}
+function bubbleRecord(r) {
+  const c = CATS.find(c => c.id === r.cat) || CATS[5];
+  const el = document.createElement('div');
+  el.className = 'chat chat-end msg-in';
+  el.dataset.id = r.id;
+  el.innerHTML = `<div class="chat-bubble chat-bubble-primary text-sm">
+      <span class="font-bold tabular-nums">$${fmt(r.amount)}</span>
+      ${r.note ? `<span class="opacity-80">・${r.note}</span>` : ''}
+      <button class="badge badge-sm ml-1 align-middle" onclick="cycleCat('${r.id}')">${c.emoji} ${c.id}</button>
+    </div>
+    <div class="chat-footer opacity-50 text-xs">${new Date(r.ts).toLocaleTimeString('zh-Hant',{hour:'2-digit',minute:'2-digit'})} 點分類可改</div>`;
+  chatLog.appendChild(el);
+}
+function daySep(ts) {
+  const el = document.createElement('div');
+  el.className = 'divider text-xs opacity-50 my-2';
+  el.textContent = new Date(ts).toLocaleDateString('zh-Hant', { month: 'long', day: 'numeric', weekday: 'short' });
+  chatLog.appendChild(el);
+}
+function scrollBottom() { chatLog.scrollTop = chatLog.scrollHeight; }
+
+function renderChat() {
+  chatLog.innerHTML = '';
+  bubblePal(`嗨，我是${palLabel()}！直接打「午餐 120」或按下面的鍵盤都可以喔`);
+  let last = '';
+  for (const r of records) {
+    if (dayKey(r.ts) !== last) { daySep(r.ts); last = dayKey(r.ts); }
+    bubbleRecord(r);
+  }
+  maybeWeeklyReport();
+  scrollBottom();
+}
+
+/* ═══════════════ 記一筆 ═══════════════ */
+function addRecord(amount, cat, note) {
+  const r = { id: uid(), ts: Date.now(), amount, cat, note: note || '' };
+  const prevLast = records.length ? dayKey(records[records.length-1].ts) : '';
+  records.push(r);
+  store.set('records', records);
+  if (dayKey(r.ts) !== prevLast) daySep(r.ts);
+  bubbleRecord(r);
+  const s = streak();
+  bubblePal(`${CHEERS[Math.floor(Math.random()*CHEERS.length)]}${s >= 2 ? `<br><span class="opacity-70">連續記帳 ${s} 天 🔥</span>` : ''}`);
+  checkGraduate();
+  renderHeader();
+  const av = document.getElementById('palAvatar');
+  av.classList.remove('pal-idle'); av.classList.add('pal-happy');
+  setTimeout(() => { av.classList.remove('pal-happy'); av.classList.add('pal-idle'); }, 950);
+  scrollBottom();
+}
+
+/* 滿 7 天 → 畢業搬進夥伴之家 */
+function checkGraduate() {
+  if (palDays() < 7) return;
+  collection.push({ e: cur.e, name: palLabel(), at: Date.now(), img: palDef().img || null });
+  store.set('collection', collection);
+  bubblePal(`🎉🎉 <b>${palLabel()}養好了！</b><br>牠已經搬進「夥伴之家」🏡<br>去設定頁挑下一位夥伴，或繼續養一隻新的${defName()}吧！`);
+  cur = { e: cur.e, name: '', adoptedAt: Date.now() + 1 };  // 同種夥伴重新開始養
+  store.set('cur', cur);
+}
+
+/* 打字解析：「午餐 120」「120 午餐」「珍奶60」 */
+function parseText(t) {
+  const m = t.match(/\d+(?:\.\d+)?/);
+  if (!m) return null;
+  const amount = Math.round(parseFloat(m[0]));
+  const kw = t.replace(m[0], '').replace(/[\s,，。$元塊]/g, '');
+  return { amount, kw, cat: guessCat(kw) };
+}
+function guessCat(kw) {
+  if (!kw) return '其他';
+  if (learned[kw]) return learned[kw];
+  for (const [cat, words] of Object.entries(HINT))
+    for (const w of words)
+      if (kw.includes(w) || w.includes(kw)) return cat;
+  return '其他';
+}
+function sendText() {
+  const input = document.getElementById('textInput');
+  const t = input.value.trim();
+  if (!t) return;
+  const p = parseText(t);
+  if (!p || p.amount <= 0) { bubblePal('我看不懂金額 😅 打「午餐 120」這樣試試？'); scrollBottom(); return; }
+  input.value = '';
+  addRecord(p.amount, p.cat, p.kw);
+}
+
+/* 數字鍵盤 */
+let amt = '';
+function key(k) {
+  if (k === '⌫') amt = amt.slice(0, -1);
+  else if (amt.length < 7) amt += k;
+  amt = amt.replace(/^0+(?=\d)/, '');
+  document.getElementById('amountDisplay').textContent = amt ? fmt(parseInt(amt)) : '0';
+}
+function recordByCat(cat) {
+  const a = parseInt(amt);
+  if (!a) { bubblePal('先按金額，再點分類喔！'); scrollBottom(); return; }
+  let note = document.getElementById('noteInput').value.trim();
+  if (cat === '其他' && !note) {
+    note = (prompt('這筆是什麼？（例：化妝品，可留空）') || '').trim();  // 其他 → 自己打名字
+  }
+  if (note) { learned[note] = cat; store.set('learned', learned); }
+  addRecord(a, cat, note);
+  amt = ''; key('⌫');
+  document.getElementById('noteInput').value = '';
+}
+
+/* 改分類＝自動學習 */
+function cycleCat(id) {
+  const r = records.find(r => r.id === id);
+  if (!r) return;
+  const i = CATS.findIndex(c => c.id === r.cat);
+  r.cat = CATS[(i + 1) % CATS.length].id;
+  store.set('records', records);
+  if (r.note) { learned[r.note] = r.cat; store.set('learned', learned); }
+  const el = chatLog.querySelector(`[data-id="${id}"] .badge`);
+  const c = CATS.find(c => c.id === r.cat);
+  if (el) el.textContent = `${c.emoji} ${c.id}`;
+}
+
+/* ═══════════════ 週報（週日 20:00 後補發） ═══════════════ */
+function maybeWeeklyReport() {
+  const now = new Date();
+  const lastSun = new Date(now);
+  lastSun.setDate(now.getDate() - now.getDay());
+  lastSun.setHours(20, 0, 0, 0);
+  if (now < lastSun) lastSun.setDate(lastSun.getDate() - 7);
+  const mark = store.get('lastReport', 0);
+  if (mark >= lastSun.getTime()) return;
+  const from = lastSun.getTime() - 7 * 864e5, to = lastSun.getTime();
+  const wk = records.filter(r => r.ts >= from && r.ts < to);
+  if (!wk.length) return;
+  const total = wk.reduce((s, r) => s + r.amount, 0);
+  const byCat = {};
+  wk.forEach(r => byCat[r.cat] = (byCat[r.cat] || 0) + r.amount);
+  const top = Object.entries(byCat).sort((a, b) => b[1] - a[1])[0];
+  const prev = records.filter(r => r.ts >= from - 7 * 864e5 && r.ts < from).reduce((s, r) => s + r.amount, 0);
+  bubblePal(`📋 <b>本週小結</b><br>一共花了 <b>$${fmt(total)}</b>，最多的是「${top[0]}」($${fmt(top[1])})` +
+    (prev ? `<br>跟上週比${total > prev ? '多' : '少'}了 $${fmt(Math.abs(total - prev))}` : ''));
+  store.set('lastReport', Date.now());
+}
+
+/* ═══════════════ 錢去哪 ═══════════════ */
+let period = 'month';
+function setPeriod(p) {
+  period = p;
+  document.querySelectorAll('[data-period]').forEach(b =>
+    b.classList.toggle('btn-primary', b.dataset.period === p));
+  renderStats();
+}
+function periodRange() {
+  const now = new Date();
+  if (period === 'day') {
+    const s = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return [s.getTime(), s.getTime() + 864e5, '今天'];
+  }
+  if (period === 'week') {
+    const s = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+    return [s.getTime(), s.getTime() + 7 * 864e5, '這一週'];
+  }
+  const s = new Date(now.getFullYear(), now.getMonth(), 1);
+  return [s.getTime(), new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime(), '這個月'];
+}
+function renderStats() {
+  const [from, to, label] = periodRange();
+  const rs = records.filter(r => r.ts >= from && r.ts < to);
+  const total = rs.reduce((s, r) => s + r.amount, 0);
+  document.getElementById('statsRange').textContent = label;
+  document.getElementById('statsTotal').textContent = fmt(total);
+  const byCat = {};
+  rs.forEach(r => byCat[r.cat] = (byCat[r.cat] || 0) + r.amount);
+  const bars = document.getElementById('statsBars');
+  bars.innerHTML = '';
+  Object.entries(byCat).sort((a, b) => b[1] - a[1]).forEach(([cat, v]) => {
+    const c = CATS.find(c => c.id === cat);
+    const pct = total ? Math.round(v / total * 100) : 0;
+    bars.insertAdjacentHTML('beforeend', `
+      <div class="text-sm">
+        <div class="flex justify-between mb-0.5">
+          <span>${c.emoji} ${cat}</span>
+          <span class="tabular-nums">$${fmt(v)}<span class="opacity-50 ml-1">${pct}%</span></span>
+        </div>
+        <div class="h-2.5 rounded-full bg-base-200 overflow-hidden">
+          <div class="bar h-full rounded-full bg-primary" style="width:${pct}%"></div>
+        </div>
+      </div>`);
+  });
+  if (!rs.length) bars.innerHTML = '<p class="text-sm opacity-50 text-center py-4">這個區間還沒有紀錄</p>';
+  const list = document.getElementById('recentList');
+  list.innerHTML = '';
+  [...records].reverse().slice(0, 30).forEach(r => {
+    const c = CATS.find(c => c.id === r.cat);
+    const d = new Date(r.ts);
+    const when = d.toLocaleDateString('zh-Hant',{month:'numeric',day:'numeric'}) + ' ' +
+                 d.toLocaleTimeString('zh-Hant',{hour:'2-digit',minute:'2-digit'});
+    list.insertAdjacentHTML('beforeend', `
+      <li class="flex items-center gap-2 text-sm bg-base-200 rounded-lg px-3 py-1.5">
+        <span>${c.emoji}</span>
+        <span class="flex-1 truncate">${r.note || r.cat}</span>
+        <span class="opacity-50 text-xs">${when}</span>
+        <span class="tabular-nums font-bold">$${fmt(r.amount)}</span>
+        <button class="btn btn-ghost btn-xs" onclick="delRecord('${r.id}')">🗑️</button>
+      </li>`);
+  });
+}
+function delRecord(id) {
+  records = records.filter(r => r.id !== id);
+  store.set('records', records);
+  renderStats(); renderChat(); renderHeader();
+}
+
+/* ═══════════════ 夥伴之家 ═══════════════ */
+function renderHome() {
+  const g = document.getElementById('homeGrid');
+  g.innerHTML = '';
+  if (!collection.length) {
+    g.innerHTML = `<p class="col-span-3 text-sm opacity-50 text-center py-8">還沒有養好的夥伴<br>記帳滿 7 天，第一位就會搬進來！</p>`;
+    return;
+  }
+  collection.forEach(p => {
+    const face = p.img ? `<img src="${p.img}/7.svg" class="w-12 h-12" alt="">` : p.e;
+    g.insertAdjacentHTML('beforeend', `
+      <div class="card bg-base-200 items-center p-3 gap-1">
+        <div class="text-4xl pal-idle">${face}</div>
+        <div class="font-bold text-sm">${p.name}</div>
+        <div class="text-xs opacity-50">${new Date(p.at).toLocaleDateString('zh-Hant',{month:'numeric',day:'numeric'})} 養好</div>
+      </div>`);
+  });
+}
+
+/* ═══════════════ 設定 ═══════════════ */
+function renderPals() {
+  const g = document.getElementById('palGrid');
+  g.innerHTML = '';
+  PALS.forEach(p => {
+    g.insertAdjacentHTML('beforeend',
+      `<button class="btn btn-ghost btn-sm text-xl ${p.e === cur.e ? 'btn-active ring-2 ring-primary' : ''}"
+               onclick="pickPal('${p.e}')" title="${p.n}">${p.e}</button>`);
+  });
+  document.getElementById('palNameInput').value = cur.name;
+  document.getElementById('palNameInput').placeholder = `不取的話就叫「${defName()}」`;
+}
+function pickPal(e) {
+  if (e === cur.e) return;
+  cur = { e, name: '', adoptedAt: Date.now() };
+  store.set('cur', cur);
+  renderPals(); renderHeader(); renderChat();
+}
+function renamePal() {
+  cur.name = document.getElementById('palNameInput').value.trim();
+  store.set('cur', cur);
+  renderHeader(); renderChat();
+}
+function saveRemind() {
+  remind = { on: document.getElementById('remindToggle').checked,
+             time: document.getElementById('remindTime').value };
+  store.set('remind', remind);
+  if (remind.on && 'Notification' in window && Notification.permission === 'default')
+    Notification.requestPermission();
+}
+setInterval(() => {
+  if (!remind.on || !('Notification' in window) || Notification.permission !== 'granted') return;
+  const now = new Date();
+  const hhmm = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const today = dayKey(Date.now());
+  if (hhmm === remind.time && store.get('lastNotify', '') !== today) {
+    new Notification('記帳小夥伴', { body: `${palLabel()}在等你：今天記帳了嗎？` });
+    store.set('lastNotify', today);
+  }
+}, 30 * 1000);
+
+/* ═══════════════ 匯出匯入 ═══════════════ */
+function download(name, text, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name; a.click();
+}
+function exportJSON() { download('記帳備份.json', JSON.stringify({ records, collection }, null, 1), 'application/json'); }
+function exportCSV() {
+  const rows = [['日期','時間','分類','項目','金額'],
+    ...records.map(r => { const d = new Date(r.ts); return [
+      d.toLocaleDateString('zh-Hant'), d.toLocaleTimeString('zh-Hant',{hour:'2-digit',minute:'2-digit'}),
+      r.cat, r.note, r.amount]; })];
+  download('記帳明細.csv', '﻿' + rows.map(r => r.join(',')).join('\n'), 'text/csv');
+}
+function importJSON(input) {
+  const f = input.files[0]; if (!f) return;
+  f.text().then(t => {
+    const data = JSON.parse(t);
+    const have = new Set(records.map(r => r.id));
+    let n = 0;
+    (data.records || []).forEach(r => { if (!have.has(r.id)) { records.push(r); n++; } });
+    records.sort((a, b) => a.ts - b.ts);
+    store.set('records', records);
+    renderChat(); renderHeader();
+    alert(`合併完成，新增 ${n} 筆（重複自動略過）`);
+    showView('chat');
+  }).catch(() => alert('檔案格式不對喔'));
+  input.value = '';
+}
+
+/* ═══════════════ 畫面切換與初始化 ═══════════════ */
+function showView(v) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  if (v === 'stats') setPeriod(period);
+  if (v === 'settings') renderPals();
+  if (v === 'home') renderHome();
+}
+document.getElementById('catButtons').innerHTML = CATS.map(c =>
+  `<button class="btn btn-sm btn-secondary btn-outline flex-col h-auto py-1 leading-tight"
+           onclick="recordByCat('${c.id}')"><span>${c.emoji}</span><span class="text-xs">${c.id}</span></button>`).join('');
+document.getElementById('remindToggle').checked = remind.on;
+document.getElementById('remindTime').value = remind.time;
+renderHeader();
+renderChat();
+if ('serviceWorker' in navigator && location.protocol === 'https:')
+  navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>

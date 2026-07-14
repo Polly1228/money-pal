@@ -1,0 +1,6 @@
+# Claude Design 原始輸出（只把整理好的 assets/pals 進版控）
+assets/chick/
+*.zip
+
+# 開發用工具頁
+fonts-preview.html
