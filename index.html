@@ -101,7 +101,7 @@
   <!-- ══════════ 頂欄 ══════════ -->
   <header class="navbar min-h-14 bg-base-100 border-b border-base-200 px-3">
     <div class="flex-1 flex items-center gap-2">
-      <div id="palAvatar" class="text-3xl pal-idle select-none cursor-pointer" onclick="showView('settings')">🐔</div>
+      <div id="palAvatar" class="text-3xl pal-idle select-none cursor-pointer" onclick="showView('settings')">🐷</div>
       <div class="leading-tight">
         <div id="palName" class="font-bold text-sm">小夥伴</div>
         <div id="streakLabel" class="text-xs opacity-60">開始記帳吧</div>
@@ -269,7 +269,7 @@ const store = {
 };
 let records    = store.get('records', []);      // {id, ts, amount, cat, note}
 let learned    = store.get('learned', {});      // 關鍵字 → 分類（自動學習）
-let cur        = store.get('cur', { e: '🐔', name: '', adoptedAt: Date.now() });
+let cur        = store.get('cur', { e: '🐷', name: '', adoptedAt: Date.now() });
 let collection = store.get('collection', []);   // 養好的夥伴 {e, name, at}
 let remind     = store.get('remind', { on: false, time: '21:00' });
 
