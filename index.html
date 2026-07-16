@@ -54,7 +54,7 @@
   @keyframes spindots {
     from { transform: rotate(0deg); } to { transform: rotate(360deg); }
   }
-  #splash { background: linear-gradient(#FFF9EF, #FFEBCF); transition: opacity 0.45s ease; }
+  #splash { background: linear-gradient(#FFF6F7, #FFE3EA); transition: opacity 0.45s ease; }
 </style>
 </head>
 <body class="bg-base-200">
@@ -62,13 +62,37 @@
 <!-- Loading 開場動畫 -->
 <div id="splash" class="fixed inset-0 z-50 flex flex-col items-center justify-center">
   <div id="splashCoins" class="absolute inset-0 overflow-hidden pointer-events-none"></div>
-  <img src="icon-512.png" class="w-24 h-24 rounded-3xl shadow-lg" style="box-shadow:0 10px 24px rgba(217,154,51,0.35);" alt="">
-  <div class="mt-6" style="font-size:26px; font-weight:900; color:#4A332A; letter-spacing:3px;">趕快來記帳!</div>
+  <!-- 小豬徽章（照 Claude Design 豬豬版 loading 頁） -->
+  <div class="relative w-28 h-28 rounded-3xl" style="background:#FFC9D6; box-shadow:0 10px 24px rgba(232,132,155,0.35);">
+    <svg viewBox="0 0 360 360" class="absolute inset-0 w-full h-full">
+      <!-- 耳朵（從圓環上緣探出來） -->
+      <path d="M 108 96 Q 100 62 128 58 Q 150 56 152 84 Z" fill="#F48FA8"/>
+      <path d="M 252 96 Q 260 62 232 58 Q 210 56 208 84 Z" fill="#F48FA8"/>
+      <!-- 白色臉圈＋雙環 -->
+      <circle cx="180" cy="180" r="120" fill="#FFFDFB"/>
+      <circle cx="180" cy="180" r="120" fill="none" stroke="#E8849B" stroke-width="11"/>
+      <circle cx="180" cy="180" r="94"  fill="none" stroke="#F5BDCB" stroke-width="6"/>
+      <!-- 眼睛 -->
+      <circle cx="142" cy="162" r="12" fill="#4A332A"/><circle cx="146" cy="157" r="4" fill="#FFF"/>
+      <circle cx="218" cy="162" r="12" fill="#4A332A"/><circle cx="222" cy="157" r="4" fill="#FFF"/>
+      <!-- 鼻子 -->
+      <ellipse cx="180" cy="198" rx="27" ry="19" fill="#F48FA8"/>
+      <ellipse cx="170" cy="198" rx="5" ry="8" fill="#C96A82"/>
+      <ellipse cx="190" cy="198" rx="5" ry="8" fill="#C96A82"/>
+      <!-- 腮紅與微笑 -->
+      <ellipse cx="118" cy="196" rx="13" ry="9" fill="#FFAB8E"/>
+      <ellipse cx="242" cy="196" rx="13" ry="9" fill="#FFAB8E"/>
+      <path d="M 170 232 Q 180 240 190 232" stroke="#C96A82" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <!-- 右上白色十字星 -->
+      <path d="M 292 78 L 292 110 M 276 94 L 308 94" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <div class="mt-6" style="font-size:26px; font-weight:900; color:#5A3844; letter-spacing:3px;">趕快來記帳!</div>
   <div class="mt-8 relative" style="width:44px; height:44px; animation:spindots 1.4s linear infinite;">
-    <div style="position:absolute; left:17px; top:0; width:9px; height:9px; border-radius:50%; background:#E0B461;"></div>
-    <div style="position:absolute; right:0; top:17px; width:9px; height:9px; border-radius:50%; background:#E0B461; opacity:0.75;"></div>
-    <div style="position:absolute; left:17px; bottom:0; width:9px; height:9px; border-radius:50%; background:#E0B461; opacity:0.5;"></div>
-    <div style="position:absolute; left:0; top:17px; width:9px; height:9px; border-radius:50%; background:#E0B461; opacity:0.25;"></div>
+    <div style="position:absolute; left:17px; top:0; width:9px; height:9px; border-radius:50%; background:#E8A0B0;"></div>
+    <div style="position:absolute; right:0; top:17px; width:9px; height:9px; border-radius:50%; background:#E8A0B0; opacity:0.75;"></div>
+    <div style="position:absolute; left:17px; bottom:0; width:9px; height:9px; border-radius:50%; background:#E8A0B0; opacity:0.5;"></div>
+    <div style="position:absolute; left:0; top:17px; width:9px; height:9px; border-radius:50%; background:#E8A0B0; opacity:0.25;"></div>
   </div>
 </div>
 
@@ -649,11 +673,12 @@ if ('serviceWorker' in navigator && location.protocol === 'https:')
   };
   for (let i = 0; i < 18; i++) { const s = 22 + Math.random() * 34; drop(coin, s, s); }
   for (let i = 0; i < 3; i++)  { const w = 54 + Math.random() * 26; drop(bill, w, w * 0.59); }
-  setTimeout(() => {
-    const sp = document.getElementById('splash');
-    sp.style.opacity = '0';
-    setTimeout(() => sp.remove(), 500);
-  }, 1600);
+  if (!location.search.includes('splash-stay'))   // 帶 ?splash-stay 可讓開場頁停住（驗收用）
+    setTimeout(() => {
+      const sp = document.getElementById('splash');
+      sp.style.opacity = '0';
+      setTimeout(() => sp.remove(), 500);
+    }, 1600);
 })();
 </script>
 </body>
